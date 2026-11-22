@@ -1,5 +1,6 @@
 import { Data, Effect, Match, Schema } from "effect";
 
+import type { SpendingCategory } from "../../../lib/taxonomy";
 import {
   ACCEPT_CONFIDENCE,
   concentration,
@@ -193,6 +194,60 @@ const classifyWith = (
     readAnswers(settings, transport, input).pipe(
       Effect.flatMap((answered) =>
         readPrediction(settings, answered, input.direction)
+      ),
+      Effect.mapError(
+        (failure: SystemOneClassificationFailed) => new Error(failure.message)
+      )
+    )
+  );
+
+const SUGGESTION_FLOOR = 0.05;
+
+const rankSuggestions = Effect.fnUntraced(function* rankSuggestions(
+  answered: SystemOneResponse,
+  direction: ClassificationInput["direction"],
+  limit: number
+) {
+  const answer = answered.answers[CATEGORY_QUESTION_ID];
+
+  if (!answer) {
+    return yield* new SystemOneClassificationFailed({
+      reason: { detail: "no category answer", kind: "undecodable" },
+    });
+  }
+
+  const scores = new Map<SpendingCategory, number>();
+  const candidates: [string, number][] = [
+    [answer.choice, answer.certainty ?? answer.confidence],
+    ...Object.entries(answer.probabilities ?? {}),
+  ];
+
+  for (const [category, score] of candidates) {
+    if (
+      isOfferedCategory(category, direction) &&
+      category !== "uncategorised" &&
+      score >= SUGGESTION_FLOOR
+    ) {
+      scores.set(category, Math.max(score, scores.get(category) ?? 0));
+    }
+  }
+
+  return [...scores.entries()]
+    .toSorted(([, left], [, right]) => right - left)
+    .slice(0, limit)
+    .map(([category]) => category);
+});
+
+export const suggestSystemOneCategories = (
+  settings: SystemOneSettings,
+  transport: ClassifierTransport,
+  input: ClassificationInput,
+  limit: number
+): Promise<SpendingCategory[]> =>
+  Effect.runPromise(
+    readAnswers(settings, transport, input).pipe(
+      Effect.flatMap((answered) =>
+        rankSuggestions(answered, input.direction, limit)
       ),
       Effect.mapError(
         (failure: SystemOneClassificationFailed) => new Error(failure.message)

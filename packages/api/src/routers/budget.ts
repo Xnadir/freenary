@@ -75,6 +75,7 @@ import { transactionPage } from "../lib/transaction-page";
 import { userCurrency } from "../lib/user-currency";
 import { spendingWeeksStart, weeklySpending } from "../lib/weekly-spending";
 import { getProvider } from "../providers/registry";
+import { categorySuggestionProcedures } from "./category-suggestions";
 import { savedFilterProcedures } from "./saved-filters";
 
 interface OutgoingRow {
@@ -975,6 +976,7 @@ const sankeyOf = (
 };
 
 export const budgetRouter = {
+  ...categorySuggestionProcedures,
   ...savedFilterProcedures,
   getAccounts: protectedProcedure.handler(async ({ context }) => {
     const userId = context.session.user.id;
