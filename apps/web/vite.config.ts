@@ -17,7 +17,9 @@ const printPublicUrl = (publicUrl: string | undefined): Plugin => ({
   name: "print-public-url",
 });
 
-export default defineConfig({
+const DEV_ONLY_ROUTE_FILES = "^dev-";
+
+export default defineConfig(({ command }) => ({
   plugins: [
     paraglideVitePlugin({
       cookieName: "PARAGLIDE_LOCALE",
@@ -31,6 +33,8 @@ export default defineConfig({
     tanstackStart({
       router: {
         entry: "./app/router/router.tsx",
+        routeFileIgnorePattern:
+          command === "build" ? DEV_ONLY_ROUTE_FILES : undefined,
         routesDirectory: "app/routes",
       },
     }),
@@ -45,4 +49,4 @@ export default defineConfig({
     allowedHosts: true,
     port: 3001,
   },
-});
+}));

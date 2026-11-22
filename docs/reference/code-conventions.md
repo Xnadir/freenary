@@ -66,6 +66,8 @@ Spreads the `ultracite/oxfmt` config and adds the agent folders to its `ignorePa
 
 `apps/web/src` also holds generated and framework files outside the layers: `routeTree.gen.ts`, `paraglide/` and `server.ts`. `apps/fumadocs/src` holds `routeTree.gen.ts`.
 
+A route file in `apps/web/src/app/routes` whose name starts with `dev-`, such as `dev-avatar.tsx`, exists in `vite dev` only. `apps/web/vite.config.ts` sets the router's `routeFileIgnorePattern` to `^dev-` for `vite build`, so a production build answers that path with the not-found page and leaves the page out of its bundle.
+
 ## Path aliases
 
 | Project         | Alias            | Resolves to               |
